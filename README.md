@@ -45,7 +45,7 @@ FORMAT:
 > Quitter une partie + dm au Mj (+Raison)
 
 
-**MJ+ADMIN/MOD EXCLUSIF**:
+# MJ+ADMIN/MOD EXCLUSIF:
 /s dec <Partie> <JJ/MM> <HH:MM> ("<Raison>")
 > déplace une partie dans le temps + ping les joueurs que partie déplacée (+Raison si spécifié)
 
@@ -63,7 +63,7 @@ FORMAT:
 > envoie <Message> aux joueurs de la partie
 
 
-**JOUEUR DEJA PARTICIPANT DES VOLETS PRECEDENTS EXCLUSIF**:
+# JOUEUR DEJA PARTICIPANT DES VOLETS PRECEDENTS EXCLUSIF:
 /s confirm <Partie>
 > confirme la présence à la suite de la partie
 
