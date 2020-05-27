@@ -1,0 +1,49 @@
+{
+    "690598949391958046": {
+        "Parties": {
+            "List": [
+                "Bar à cocotte"
+            ],
+            "Bar à cocotte": {
+                "Auteur": {
+                    "id": "408243202626420736",
+                    "bot": false,
+                    "username": "Personne",
+                    "discriminator": "5947",
+                    "avatar": "dbe2f6b7443e123d6b70ceb8e159efd9",
+                    "lastMessageChannelID": "690601650762547270",
+                    "flags": 0,
+                    "createdTimestamp": 1517403164298,
+                    "defaultAvatarURL": "https://cdn.discordapp.com/embed/avatars/2.png",
+                    "tag": "Personne#5947",
+                    "avatarURL": "https://cdn.discordapp.com/avatars/408243202626420736/dbe2f6b7443e123d6b70ceb8e159efd9.webp",
+                    "displayAvatarURL": "https://cdn.discordapp.com/avatars/408243202626420736/dbe2f6b7443e123d6b70ceb8e159efd9.webp"
+                },
+                "Date": "30/05",
+                "ping1": false,
+                "ping2": false,
+                "specs": {
+                    "Jeu": "Magical Days",
+                    "Style": "Medieval fantasy",
+                    "Heure": "15:30",
+                    "MJ": "<@261273833598615554>",
+                    "Synopsis": "Dans un monde où la magie prospère, où les rois sont choisis par les dieux, se trouve le Bar à Cocotte en plein milieu de la capitale, connu pour être un foyer pour les mages mercenaires. Aujourd'hui ce foyer brûle.. Vous êtes les enquêteurs sur ce mystérieux incendie.",
+                    "Places": "4",
+                    "Joueurs": [
+                        "<@408243202626420736>",
+                        "<@221608396539953153>"
+                    ],
+                    "Attente": []
+                },
+                "state": "714854575877914688"
+            }
+        },
+        "assigned": "714500016860954684"
+    },
+    "705910011611578408": {
+        "Parties": {
+            "List": []
+        },
+        "assigned": "714468193841971260"
+    }
+}
