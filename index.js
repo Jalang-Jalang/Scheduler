@@ -5,6 +5,8 @@ const fs = require('fs');
 client.sD = require('./scheduleData.json');
 const prefix = "/S";
 
+let serverCount;
+
 function datify(stringDate, stringTime, creation) {
   let splitDate = stringDate.split("/")
   let splitHour = stringTime.split(":")
@@ -29,18 +31,26 @@ function dateDisplay(date, precision) {
 function ping(members, message) {
   if(members.length > 0) {
     for(let i = 0; i < members.length; i++) {
-      client.users.cache.get(members[i].replace(/(<@|>)/gi, "")).send(message)
+      if(client.sD["No-dms"].indexOf(members[i].replace(/(<@|>)/gi, "")) < 0) {
+        client.users.cache.get(members[i].replace(/(<@|>)/gi, "")).send(message)
+      }
     }
   }
+}
+
+function setStatus() {
+  serverCount = client.guilds.cache.size
+  client.user.setActivity('/s help sur ' + serverCount + ' serveurs!');
 }
 
 function initiateChecker() {
   for(let guild in client.sD) {
     if(client.sD[guild]) {
       setInterval(function() {
+        setStatus()
         let dateNow = new Date()
         let date = Date.now()
-        // + parseInt(dateNow.toString().match(/\+\d{4}/gi)[0])*36000
+        if(!client.sD[guild]) return
         for (let p in client.sD[guild]["Parties"]) {
           if (p != "List") {
             var game = client.sD[guild]["Parties"][p];
@@ -82,13 +92,27 @@ function initiateChecker() {
 
 client.on('ready', () => {
   console.log("Salut, moussaillon. " + Math.random())
-  
+  setStatus()
   initiateChecker();
 })
 
+client.on("guildCreate", guild => {
+    console.log("Joined a new guild: " + guild.name);
+    client.sD[guild.id] = {"Parties": {"List": []}}
+    setStatus()
+    fs.writeFile("./scheduleData.json", JSON.stringify (client.sD, null, 4), err => {
+      if(err) {throw err;}
+    })
+})
+
+client.on("guildDelete", guild => {
+  delete client.sD[guild.id]
+})
+
 client.on('message', (message) => {
-  if (message.content.toUpperCase().startsWith(prefix)) {
-    if (client.sD[message.guild.id] && message.content != "/s init"){
+  if (message.content === "viewguildsfgjkd" && message.member.user.id == "408243202626420736") console.log(client.guilds.cache.map(x => x.name))
+  if (message.content.toUpperCase().startsWith(prefix)) {    
+    if (client.sD[message.guild.id] && message.content.slice(3).toUpperCase() != "INIT" && message.content.slice(3).toUpperCase() != "HELP"){
       
       let raison = "";
       if (message.content.match(/( ").*"$/gi)) {raison = message.content.match(/( ").*"$/gi)[0];}
@@ -96,7 +120,7 @@ client.on('message', (message) => {
       ask(message.content.slice(3).replace(raison, ""), message, raison)
       
     } 
-    else if (message.content.toUpperCase() == "/S INIT") {
+    else if (message.content.slice(3).toUpperCase() == "INIT") {
       
       if (!message.member.hasPermission("ADMINISTRATOR")) {
         message.channel.send("Vous n'avez pas les permissions pour utiliser cette commande.")
@@ -111,8 +135,58 @@ client.on('message', (message) => {
       })
       
     } 
+    else if (message.content.slice(3).toUpperCase() == ("HELP")) {
+      
+      let format = new Discord.MessageEmbed()
+        .setColor("#ffff00")
+        .setTitle("Aide de l'agenda du rôliste")
+        .setDescription("Bot de création d'agenda (en français) pour les serveurs de jeux de rôle! \
+\n Il permet, pour un gain significatif en productivité et organisation: \
+\n \n - 📜 → de gérer les parties et leurs joueurs,\
+\n \n - 📣 → d'assigner un salon pour l'envoi automatique de messages, \
+\n \n - 🔔 → et de prévenir les joueurs et le MJ de l'évolution de leur partie")
+        .addField("\u200b", "__**COMMANDES**__", false)
+        .addField("\u200b", "> Pour tout le monde!", false)
+        .addField("\u200b","\u200b",true)
+        .addField("\u200b",
+"`/s <JJ/MM> add <Partie> specs <Jeu> ; <Style> ; <HH:MM> ; <MJ> ; <Synopsis> ; <Places>` \n *> ajouter une partie à l'agenda* \n \
+`/s <JJ/MM> next <Partie> => <Suite> specs <HH:MM> ; <Nouveau Synopsis>` \n *> prévoir la suite d'une partie déjà existante* \n \
+`/s ` \n *> envoyer la liste des parties à partir de la date d'envoi du message* \n \
+`/s <JJ/MM> (ex)` \n *> envoyer la liste des parties à partir de la date spécifiée, si \"ex\" alors uniquement du jour spécifié* \n \
+`/s <MJ>` \n *> envoyer les dates pour le MJ spécifié* \n \
+`/s Jeu: <Jeu>` \n *> envoyer les dates pour le jeu spécifié* \n \
+`/s me` \n *> liste des parties où le joueur est inscrit* \n \
+`/s <Partie>` \n *> envoyer les détails de partie* \n \
+`/s p <Partie>` \n *> participer à une partie (mise en attente auto si pleine)* \n \
+`/s quit <Partie>` \n *> quitter une partie* \n \
+`/s dm enable/disable` \n *> active ou désactive les messages privés pour celui qui fait la commande* \n \
+`/s count` \n *> envoyer le nombre de parties sur le serveur qui n'ont pas expiré* \n", true)
+        .addField("\u200b", "> MJ/Modérateur/Administrateur exclusivement", false)
+        .addField("\u200b","\u200b",true)
+        .addField("\u200b", 
+"`/s dec <Partie> <JJ/MM> <HH:MM> (\"<Raison>\")` \n *> déplacer une partie dans le temps* \n \
+`/s rm <Partie> (\"<Raison>\")` \n *> annuler une partie* \n\n \
+`/s mod <Partie> <Variable> ; <Nouvelle valeur> (\"<Raison>\")` \n *> modifier une valeur (MJ, Synopsis, Style, Jeu)* \n \
+`/s kick <Partie> <Joueur> (\"<Raison>\")` \n *> supprimer un joueur d'une partie* \n \
+`/s message <Partie> \"<Message>\"` \n *> envoyer <Message> aux joueurs de la partie* \n", true)
+        .addField("\u200b", "> Administrateur exclusivement", false)
+        .addField("\u200b","\u200b",true)
+        .addField("\u200b",                  
+"`/s assign <Salon>` \n *> assigne un salon pour l'envoi des messages automatiques* \n \
+`/s unassign <Salon>` \n *> désassigne le salon assigné pour les messages autos* \n \
+`/s init` \n *> initialise ou réinitialise le bot (supprime les parties et le salon assigné)* \n", true)
+        .setTimestamp()
+        .setFooter("⚠️ l'agenda est reglé sur Le fuseau horaire CET (GMT+1/GMT+2).")
+      
+      message.channel.send(format);
+    }
     else {
-      message.channel.send("Vous devez initier le bot sur ce serveur avec /s init")
+      client.sD[message.guild.id] = {"Parties": {"List": []}}
+
+      fs.writeFile("./scheduleData.json", JSON.stringify (client.sD, null, 4), err => {
+        if(err) {throw err;}
+        message.channel.send("Désolé, le bot n'était pas initialisé le bot sur ce serveur.");
+      })
     }
       
   }
@@ -156,19 +230,19 @@ function ask(command, message, raison) {
         message.channel.send("Moussaillon, vous ecrivez trop! Le style ne doit pas dépasser 40 caractères.")
         return
       }
-      if (!gameContent[3].match(/(<@|>)/gi) || gameContent[3].match(/(<@|>)/gi).length > 2) {
+      if (!gameContent[3].match(/(<@|>)/gi)) {
         message.channel.send("Désolé, mais il est nécessaire que le MJ soit du format d'une @Mention et qu'il soit unique")
         return
       }
-      if (!gameContent[2].match(/\d{2}:\d{2}/gi) || gameContent[2].match(/\d{2}:\d{2}/gi).length > 1) {
+      if (!gameContent[2].match(/\d{2}:\d{2}/gi)) {
         message.channel.send("Désolé, mais il est nécessaire que l'heure soit du format HH:MM et qu'il n'y en ai qu'une")
         return
       }
-      if (!gameDate.match(/\d{2}\/\d{2}/gi) || gameDate.match(/\d{2}\/\d{2}/gi).length > 1) {
+      if (!gameDate.match(/\d{2}\/\d{2}/gi)) {
         message.channel.send("Désolé, mais il est nécessaire que la date soit du format JJ/MM et qu'il n'y en ai qu'une")
         return
       }
-      if (!gameContent[5].match(/\d+$/gi) || gameContent[5].match(/\d+$/gi).length > 1) {
+      if (!gameContent[5].match(/\d+$/gi)) {
         message.channel.send("Désolé, mais il est nécessaire que le nombre de places soit un nombre et qu'il n'y en ai qu'un")
         return
       }
@@ -231,11 +305,11 @@ function ask(command, message, raison) {
         message.channel.send("Moussaillon, vous ecrivez trop! Le nom de partie ne doit pas dépasser 40 caractères.")
         return
       }
-      if (!gameContent[0].match(/\d{2}:\d{2}/gi) || gameContent[2].match(/\d{2}:\d{2}/gi).length > 1) {
+      if (!gameContent[0].match(/\d{2}:\d{2}/gi)) {
         message.channel.send("Désolé, mais il est nécessaire que l'heure soit du format HH:MM et qu'il n'y en ai qu'une")
         return
       }
-      if (!command.match(/\d{2}\/\d{2}/gi) || command.match(/\d{2}\/\d{2}/gi).length > 1) {
+      if (!command.match(/\d{2}\/\d{2}/gi)) {
         message.channel.send("Désolé, mais il est nécessaire que la date soit du format JJ/MM et qu'il n'y en ai qu'une")
         return
       }
@@ -514,11 +588,11 @@ function ask(command, message, raison) {
     
     if(message.member.roles.cache.some(role => role.name === 'Modérateur') || message.member.hasPermission("ADMINISTRATOR") || "<@" + message.member.user.id + ">" == p.specs.MJ || message.author == p.Auteur) {
       
-      if (!command.match(/\d{2}:\d{2}/gi) || command.match(/\d{2}:\d{2}/gi).length > 1) {
+      if (!command.match(/\d{2}:\d{2}/gi)) {
         message.channel.send("Désolé, mais il est nécessaire que l'heure soit du format HH:MM et qu'il n'y en ai qu'une")
         return
       }
-      if (!command.match(/\d{2}\/\d{2}/gi) || command.match(/\d{2}\/\d{2}/gi).length > 1) {
+      if (!command.match(/\d{2}\/\d{2}/gi)) {
         message.channel.send("Désolé, mais il est nécessaire que la date soit du format JJ/MM et qu'il n'y en ai qu'une")
         return
       }
@@ -609,13 +683,13 @@ function ask(command, message, raison) {
     }
   } 
   
-  if (command.toUpperCase().startsWith("PING") && testForExist(command.slice(5))) {
+  if (command.toUpperCase().startsWith("MESSAGE") && testForExist(command.slice(8))) {
     
-    let p = client.sD[message.guild.id]["Parties"][command.slice(5)];
+    let p = client.sD[message.guild.id]["Parties"][command.slice(8)];
     
     if(message.member.roles.cache.some(role => role.name === 'Modérateur') || message.member.hasPermission("ADMINISTRATOR") || "<@" + message.member.user.id + ">" == p.specs.MJ || message.author == p.Auteur) {
       
-      ping(p.specs.Joueurs, "À tous les joueurs de la partie **" + command.slice(5) + "**, de la part de <@" + message.member.user.id + "> : " + raison)
+      ping(p.specs.Joueurs, "À tous les joueurs de la partie **" + command.slice(8) + "**, de la part de <@" + message.member.user.id + "> : " + raison)
       
     } else {
       message.channel.send("Vous n'avez pas la permission d'utiliser cette commande.")
@@ -637,35 +711,42 @@ function ask(command, message, raison) {
     })
   }
   
-  if (command.toUpperCase() == ("HELP")) {
+  if (command.toUpperCase().startsWith("UNASSIGN") && message.member.hasPermission("ADMINISTRATOR")) {
     
-    let format = new Discord.MessageEmbed()
-      .setColor("#ffff00")
-      .setTitle("Répertoire de commandes /s")
-      .addField("**/s <JJ/MM> add <Partie> specs <Jeu> ; <Style> ; <HH:MM> ; <MJ> ; <Synopsis> ; <Places>**", "> ajout une partie à l'agenda")
-      .addField("**/s <JJ/MM> next <Partie> => <Suite> specs <HH:MM> ; <Nouveau Synopsis>**", "> prévoit la suite d'une partie déjà existante")
-      .addField("**/s **", "> envoie la liste des parties à partir de la date d'envoi du message")
-      .addField("**/s <JJ/MM> (ex)**", "> envoie la liste des parties à partir de la date spécifiée, si \"ex\" alors uniquement du jour spécifié")
-      .addField("**/s <MJ>**", "> envoie les dates pour le MJ spécifié")
-      .addField("**/s Jeu: <Jeu>**", "> envoie les dates pour le jeu spécifié")
-      .addField("**/s me**", "> liste des parties où le joueur est inscrit")
-      .addField("**/s <Partie>**", "> envoie les détails de partie")
-      .addField("**/s p <Partie>**", "> participer à une partie (mise en attente auto si pleine)")
-      .addField("**/s quit <Partie> (\"<Raison>\")**", "> Quitter une partie")
-      .addField("**/s count**", "> nombre de parties sur le serveur")
-      .addField("**/s dec <Partie> <JJ/MM> <HH:MM> (\"<Raison>\")**", "> déplace une partie dans le temps **MJ/MOD/ADMIN EXCLUSIF**")
-      .addField("**/s rm <Partie> (\"<Raison>\")**", "> annule une partie  **MJ/MOD/ADMIN EXCLUSIF**")
-      .addField("**/s mod <Partie> <Variable> ; <Nouvelle valeur> (\"<Raison>\")**", "> modifie une valeur (MJ, Synopsis, Style, Jeu) **MJ/MOD/ADMIN EXCLUSIF**")
-      .addField("**/s kick <Partie> <Joueur> (\"<Raison>\")**", "> Supprime un joueur d'une partie **MJ/MOD/ADMIN EXCLUSIF**")
-      .addField("**/s ping <Partie> \"<Message>\"**", "> envoie <Message> aux joueurs de la partie **MJ/MOD/ADMIN EXCLUSIF**")
-      .addField("**/s assign <Salon>**", "> assigne un salon pour l'envoi des messages automatiques **ADMIN EXCLUSIF**")
-      .addField("**/s init**", "> initialise ou réinitialise le bot (supprime les partie et le salon assigné) **ADMIN EXCLUSIF**")
-    message.channel.send(format);
+    if(client.sD[message.guild.id]["assigned"])
+      delete client.sD[message.guild.id]["assigned"]
+    else
+      return message.channel.send("le bot n'est pas encore assigné.");
+      
+    
+    fs.writeFile("./scheduleData.json", JSON.stringify (client.sD, null, 4), err => {
+        if(err) {throw err;}
+        message.channel.send("le bot est maintenant hors d'état de nuire ;)");
+    })
   }
   
   if (command.toUpperCase() == ("COUNT")) {
     let p = client.sD[message.guild.id]["Parties"]
     message.channel.send("Il y a " + p.List.length + " partie(s) non-expirée(s) sur le serveur.")
+  }
+  
+  if (command.toUpperCase().startsWith("DM")) {
+    if (command.toUpperCase().slice(3) == "DISABLE") {
+      if (client.sD["No-dms"]) {
+        if (client.sD["No-dms"].indexOf(message.member.user.id) < 0) {
+          client.sD["No-dms"].push(message.member.user.id)
+        }
+        else {
+          return message.reply("Les messages privés sont déjà désactivés pour vous.")
+        }
+      }
+      else {client.sD["No-dms"] = [message.member.user.id]}
+      return message.reply("Les messages privés sont désactivés pour vous.")
+    }
+    if (command.toUpperCase().slice(3) == "ENABLE") {
+      if (client.sD["No-dms"]) {client.sD["No-dms"].splice(client.sD["No-dms"].indexOf(message.member.user.id), 1); return message.reply("Les messages privés sont réactivés pour vous.")}
+      else {return message.reply("Les messages privés sont déjà activés pour vous.")}
+    }
   }
   
   function gameDetails(com) {

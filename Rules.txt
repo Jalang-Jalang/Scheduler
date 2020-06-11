@@ -71,3 +71,5 @@ FORMAT:
 
 /s stop <Partie>
 > ping le MJ que le joueur stoppe la série de parties
+
+        
